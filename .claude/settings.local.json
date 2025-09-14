@@ -4,7 +4,8 @@
       "WebFetch(domain:www.ncbi.nlm.nih.gov)",
       "WebSearch",
       "Bash(npm run lint)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

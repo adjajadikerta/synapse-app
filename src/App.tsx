@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { searchPubMed, getDefaultPapers } from './services/pubmed';
 import { searchDemoPapers, getDemoDefaultPapers } from './services/demoData';
 import { findSimilarPapers } from './services/similarity';
+import TopicsPage from './components/TopicsPage';
+import ContributionsPage from './components/ContributionsPage';
+import type { ContributionType } from './types/contributions';
 
 type SimilarityScore = {
   pmid: string;
@@ -367,7 +370,10 @@ function DataSourceToggle({ useLiveData, onToggle, disabled = false }: DataSourc
   );
 }
 
+type ActiveTab = 'papers' | 'topics' | 'contributions';
+
 function App() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('papers');
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comments, setComments] = useState<CommentsMap>({});
   const [newComment, setNewComment] = useState<NewCommentMap>({});
@@ -377,6 +383,8 @@ function App() {
   const [searching, setSearching] = useState<boolean>(false);
   const [highlightedPaper, setHighlightedPaper] = useState<string | null>(null);
   const [useLiveData, setUseLiveData] = useState<boolean>(false); // Default to demo data
+  const [contributionType, setContributionType] = useState<ContributionType | undefined>(undefined);
+  const [targetTopicId, setTargetTopicId] = useState<string | undefined>(undefined);
   
   // Convert PubMed article to Paper with ratings
   const convertToPaper = (article: PubMedArticle): Paper => ({
@@ -497,6 +505,18 @@ function App() {
     setSearchTerm(''); // Clear search when switching data sources
   };
 
+  const handleContribute = (type: ContributionType, topicId: string) => {
+    setContributionType(type);
+    setTargetTopicId(topicId);
+    setActiveTab('contributions');
+  };
+
+  const handlePaperContribute = (type: ContributionType, paperId: string, paperTitle: string) => {
+    setContributionType(type);
+    setTargetTopicId(paperId); // Reuse this field for paper ID
+    setActiveTab('contributions');
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh',
@@ -570,19 +590,93 @@ function App() {
         margin: '0 auto', 
         padding: '0 2rem 4rem 2rem' 
       }}>
+
+      {/* Navigation Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        marginBottom: '2rem',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%)',
+        padding: '0.5rem',
+        borderRadius: '16px',
+        border: '1px solid #e8e2d5',
+        boxShadow: '0 2px 8px rgba(44, 62, 80, 0.05)'
+      }}>
+        {[
+          { key: 'papers' as ActiveTab, label: '📚 Research Papers', desc: 'Browse and search individual papers' },
+          { key: 'topics' as ActiveTab, label: '🧬 Scientific Topics', desc: 'Explore evidence-based topic summaries' },
+          { key: 'contributions' as ActiveTab, label: '🤝 Contributions', desc: 'Manage community contributions' }
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => {
+              setActiveTab(tab.key);
+              setSearchTerm(''); // Clear search when switching tabs
+            }}
+            style={{
+              flex: 1,
+              padding: '1rem 1.5rem',
+              background: activeTab === tab.key 
+                ? 'linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%)'
+                : 'transparent',
+              color: activeTab === tab.key ? '#ffffff' : '#4a5568',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              textAlign: 'left',
+              boxShadow: activeTab === tab.key 
+                ? '0 4px 12px rgba(74, 144, 226, 0.3)' 
+                : 'none'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== tab.key) {
+                e.currentTarget.style.backgroundColor = 'rgba(74, 144, 226, 0.1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== tab.key) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            <div style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>
+              {tab.label}
+            </div>
+            <div style={{ 
+              fontSize: '0.8rem', 
+              opacity: 0.8,
+              fontWeight: '400'
+            }}>
+              {tab.desc}
+            </div>
+          </button>
+        ))}
+      </div>
       
-      <DataSourceToggle 
-        useLiveData={useLiveData}
-        onToggle={handleDataSourceToggle}
-        disabled={loading || searching}
-      />
+      {activeTab === 'papers' && (
+        <>
+          <DataSourceToggle 
+            useLiveData={useLiveData}
+            onToggle={handleDataSourceToggle}
+            disabled={loading || searching}
+          />
+        </>
+      )}
       
       <div style={{ position: 'relative', marginBottom: '2rem' }}>
         <input 
           type="text"
-          placeholder={useLiveData 
-            ? "Search biomedical papers from PubMed..." 
-            : "Search demo papers (try: CRISPR, cancer, COVID, protein)..."
+          placeholder={
+            activeTab === 'topics' 
+              ? "Search topics by title, description, or keywords..."
+              : activeTab === 'contributions'
+                ? "Search contributions by type, status, or contributor..."
+                : useLiveData 
+                  ? "Search biomedical papers from PubMed..." 
+                  : "Search demo papers (try: CRISPR, cancer, COVID, protein)..."
           }
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -622,47 +716,109 @@ function App() {
         </div>
       </div>
       
-      {error && (
+      {/* Papers tab specific actions */}
+      {activeTab === 'papers' && (
         <div style={{
-          background: 'linear-gradient(135deg, #ffeaea 0%, #ffd6d6 100%)',
-          color: '#c53030',
-          padding: '1.25rem 1.5rem',
-          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: '2rem',
-          border: '1px solid #feb2b2',
-          boxShadow: '0 4px 12px rgba(197, 48, 48, 0.1)',
-          fontSize: '1rem',
-          fontWeight: '500'
+          padding: '1rem 1.5rem',
+          background: 'linear-gradient(135deg, #e8f4f8 0%, #d1e7dd 100%)',
+          borderRadius: '12px',
+          border: '1px solid #bee3f8'
         }}>
-          ⚠️ {error}
-        </div>
-      )}
-      
-      {(loading || searching) && (
-        <div style={{
-          textAlign: 'center',
-          padding: '3rem 2rem',
-          color: '#8b9dc3',
-          fontSize: '1.1rem',
-          fontWeight: '500'
-        }}>
-          <div style={{
-            display: 'inline-block',
-            width: '40px',
-            height: '40px',
-            border: '3px solid #e8e2d5',
-            borderTop: '3px solid #4a90e2',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            marginBottom: '1rem'
-          }}></div>
           <div>
-            {searching ? 'Searching PubMed...' : 'Loading papers from PubMed...'}
+            <h3 style={{
+              margin: '0 0 0.25rem 0',
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: '#2c5282'
+            }}>
+              📚 Research Papers Collection
+            </h3>
+            <p style={{
+              margin: 0,
+              fontSize: '0.9rem',
+              color: '#4a5568'
+            }}>
+              Browse individual papers, add notes, and discover knowledge gaps
+            </p>
           </div>
+          <button
+            onClick={() => handleContribute('suggest-topic', '')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              background: 'linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 8px rgba(74, 144, 226, 0.2)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 144, 226, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(74, 144, 226, 0.2)';
+            }}
+          >
+            💡 Suggest New Topic
+          </button>
         </div>
       )}
       
-      {filteredPapers.map(paper => (
+      {activeTab === 'papers' ? (
+        <>
+          {error && (
+            <div style={{
+              background: 'linear-gradient(135deg, #ffeaea 0%, #ffd6d6 100%)',
+              color: '#c53030',
+              padding: '1.25rem 1.5rem',
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              border: '1px solid #feb2b2',
+              boxShadow: '0 4px 12px rgba(197, 48, 48, 0.1)',
+              fontSize: '1rem',
+              fontWeight: '500'
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+          
+          {(loading || searching) && (
+            <div style={{
+              textAlign: 'center',
+              padding: '3rem 2rem',
+              color: '#8b9dc3',
+              fontSize: '1.1rem',
+              fontWeight: '500'
+            }}>
+              <div style={{
+                display: 'inline-block',
+                width: '40px',
+                height: '40px',
+                border: '3px solid #e8e2d5',
+                borderTop: '3px solid #4a90e2',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '1rem'
+              }}></div>
+              <div>
+                {searching ? 'Searching PubMed...' : 'Loading papers from PubMed...'}
+              </div>
+            </div>
+          )}
+          
+          {filteredPapers.map(paper => (
         <div 
           id={`paper-${paper.pmid}`}
           key={paper.pmid} 
@@ -896,6 +1052,129 @@ function App() {
             </div>
           </div>
 
+          {/* Paper Contribution Actions */}
+          <div style={{
+            paddingTop: '1.5rem',
+            borderTop: '1px solid #e8e2d5',
+            marginTop: '1.5rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1rem'
+            }}>
+              <h4 style={{
+                margin: 0,
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#2c3e50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                🤝 Improve this paper
+              </h4>
+              <span style={{
+                fontSize: '0.85rem',
+                color: '#8b9dc3'
+              }}>
+                Help the community with missing details or corrections
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '0.75rem'
+            }}>
+              <button
+                onClick={() => handlePaperContribute('add-methodology-details', paper.pmid, paper.title)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(74, 144, 226, 0.08)',
+                  color: '#4a90e2',
+                  border: '1px solid rgba(74, 144, 226, 0.2)',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(74, 144, 226, 0.12)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(74, 144, 226, 0.08)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                🔬 Add Methods Details
+              </button>
+
+              <button
+                onClick={() => handlePaperContribute('correct-paper-info', paper.pmid, paper.title)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(221, 107, 32, 0.08)',
+                  color: '#dd6b20',
+                  border: '1px solid rgba(221, 107, 32, 0.2)',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(221, 107, 32, 0.12)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(221, 107, 32, 0.08)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                ✏️ Suggest Corrections
+              </button>
+
+              <button
+                onClick={() => handlePaperContribute('suggest-paper-topics', paper.pmid, paper.title)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(56, 161, 105, 0.08)',
+                  color: '#38a169',
+                  border: '1px solid rgba(56, 161, 105, 0.2)',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 161, 105, 0.12)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 161, 105, 0.08)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                🏷️ Suggest Topics
+              </button>
+            </div>
+          </div>
+
           {/* Related Papers section */}
           <RelatedPapers 
             currentPaper={paper}
@@ -904,6 +1183,18 @@ function App() {
           />
         </div>
       ))}
+        </>
+      ) : activeTab === 'topics' ? (
+        <TopicsPage 
+          searchTerm={searchTerm} 
+          onContribute={handleContribute}
+        />
+      ) : (
+        <ContributionsPage 
+          contributionType={contributionType}
+          targetTopicId={targetTopicId}
+        />
+      )}
       </div>
     </div>
   );
