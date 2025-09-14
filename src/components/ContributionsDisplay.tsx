@@ -4,7 +4,9 @@ import type {
   ContributionStatus, 
   ContributionType, 
   ContributionFilters,
-  ContributionComment 
+  ContributionComment,
+  PaperContributionType,
+  TopicContributionType
 } from '../types/contributions';
 
 interface ContributionsDisplayProps {
@@ -101,7 +103,7 @@ function StatusBadge({ status }: { status: ContributionStatus }) {
   );
 }
 
-function TypeBadge({ type }: { type: ContributionType }) {
+function TypeBadge({ type }: { type: PaperContributionType | TopicContributionType }) {
   const getTypeConfig = () => {
     switch (type) {
       case 'add-paper':
@@ -129,15 +131,15 @@ function TypeBadge({ type }: { type: ContributionType }) {
       alignItems: 'center',
       gap: DISPLAY_TOKENS.spacing.xs,
       padding: `${DISPLAY_TOKENS.spacing.xs} ${DISPLAY_TOKENS.spacing.sm}`,
-      background: `${config.color}15`,
-      color: config.color,
-      border: `1px solid ${config.color}30`,
+      background: `${config?.color || '#4a90e2'}15`,
+      color: config?.color || '#4a90e2',
+      border: `1px solid ${config?.color || '#4a90e2'}30`,
       borderRadius: '8px',
       fontSize: '0.75rem',
       fontWeight: '500'
     }}>
-      <span>{config.icon}</span>
-      {config.label}
+      <span>{config?.icon || '📄'}</span>
+      {config?.label || 'Unknown'}
     </span>
   );
 }
@@ -214,7 +216,7 @@ function ContributionCard({
             <div>
               <strong>Key Findings:</strong>
               <ul style={{ margin: `${DISPLAY_TOKENS.spacing.sm} 0`, paddingLeft: DISPLAY_TOKENS.spacing.xl }}>
-                {paperData.relevantFindings.map((finding, i) => (
+                {paperData.relevantFindings.map((finding: any, i: number) => (
                   <li key={i} style={{ marginBottom: DISPLAY_TOKENS.spacing.xs }}>{finding}</li>
                 ))}
               </ul>
@@ -322,7 +324,7 @@ function ContributionCard({
             </div>
             <div>
               <strong>Missing Details:</strong>
-              {methodsData.missingDetails.map((detail, i) => (
+              {methodsData.missingDetails.map((detail: any, i: number) => (
                 <div key={i} style={{ 
                   marginTop: DISPLAY_TOKENS.spacing.sm,
                   padding: DISPLAY_TOKENS.spacing.md,
@@ -355,7 +357,7 @@ function ContributionCard({
             </div>
             <div>
               <strong>Corrections:</strong>
-              {correctionData.corrections.map((correction, i) => (
+              {correctionData.corrections.map((correction: any, i: number) => (
                 <div key={i} style={{ 
                   marginTop: DISPLAY_TOKENS.spacing.sm,
                   padding: DISPLAY_TOKENS.spacing.md,
@@ -388,7 +390,7 @@ function ContributionCard({
             </div>
             <div>
               <strong>Suggested Topics:</strong>
-              {paperTopicsData.suggestedTopics.map((topic, i) => (
+              {paperTopicsData.suggestedTopics.map((topic: any, i: number) => (
                 <div key={i} style={{ 
                   marginTop: DISPLAY_TOKENS.spacing.sm,
                   padding: DISPLAY_TOKENS.spacing.md,
@@ -406,7 +408,7 @@ function ContributionCard({
             {paperTopicsData.newTopicSuggestions && paperTopicsData.newTopicSuggestions.length > 0 && (
               <div>
                 <strong>New Topic Suggestions:</strong>
-                {paperTopicsData.newTopicSuggestions.map((newTopic, i) => (
+                {paperTopicsData.newTopicSuggestions.map((newTopic: any, i: number) => (
                   <div key={i} style={{ 
                     marginTop: DISPLAY_TOKENS.spacing.sm,
                     padding: DISPLAY_TOKENS.spacing.md,
@@ -450,7 +452,7 @@ function ContributionCard({
           }}>
             <TypeBadge type={contribution.type} />
             <StatusBadge status={contribution.status} />
-            <PriorityBadge priority={contribution.priority} />
+            <PriorityBadge priority={contribution.priority || 'medium'} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: DISPLAY_TOKENS.spacing.xs }}>
@@ -458,8 +460,8 @@ function ContributionCard({
               fontSize: '0.9rem',
               color: DISPLAY_TOKENS.colors.text.secondary
             }}>
-              <strong>By:</strong> {contribution.contributor.name} 
-              {contribution.contributor.institution && ` (${contribution.contributor.institution})`}
+              <strong>By:</strong> {contribution.contributor?.name || 'Unknown'}
+              {contribution.contributor?.institution && ` (${contribution.contributor.institution})`}
             </div>
             
             {contribution.targetTopic && (
@@ -475,7 +477,7 @@ function ContributionCard({
               fontSize: '0.8rem',
               color: DISPLAY_TOKENS.colors.text.tertiary
             }}>
-              Submitted: {contribution.submittedAt.toLocaleDateString()} at {contribution.submittedAt.toLocaleTimeString()}
+              Submitted: {contribution.submittedAt?.toLocaleDateString() || 'Unknown'} at {contribution.submittedAt?.toLocaleTimeString() || 'Unknown'}
             </div>
           </div>
         </div>
@@ -509,7 +511,7 @@ function ContributionCard({
           </div>
 
           {/* Contributor Expertise */}
-          {contribution.contributor.expertise.length > 0 && (
+          {contribution.contributor?.expertise && contribution.contributor.expertise.length > 0 && (
             <div style={{ marginBottom: DISPLAY_TOKENS.spacing.lg }}>
               <strong style={{ fontSize: '0.9rem', color: DISPLAY_TOKENS.colors.text.primary }}>
                 Contributor Expertise:
@@ -520,7 +522,7 @@ function ContributionCard({
                 gap: DISPLAY_TOKENS.spacing.xs,
                 marginTop: DISPLAY_TOKENS.spacing.sm
               }}>
-                {contribution.contributor.expertise.map((area, i) => (
+                {contribution.contributor?.expertise?.map((area: any, i: number) => (
                   <span
                     key={i}
                     style={{
@@ -921,10 +923,10 @@ export default function ContributionsDisplay({
     if (filters.status && filters.status.length > 0 && !filters.status.includes(contribution.status)) {
       return false;
     }
-    if (filters.type && filters.type.length > 0 && !filters.type.includes(contribution.type)) {
+    if (filters.type && filters.type.length > 0 && !filters.type.includes(contribution.type as any)) {
       return false;
     }
-    if (filters.priority && filters.priority.length > 0 && !filters.priority.includes(contribution.priority)) {
+    if (filters.priority && filters.priority.length > 0 && !filters.priority.includes(contribution.priority || 'medium')) {
       return false;
     }
     if (filters.contributorId && contribution.contributorId !== filters.contributorId) {
@@ -941,12 +943,12 @@ export default function ContributionsDisplay({
     switch (sortBy) {
       case 'priority':
         const priorityOrder = { high: 3, medium: 2, low: 1 };
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
+        return priorityOrder[b.priority || 'medium'] - priorityOrder[a.priority || 'medium'];
       case 'status':
         const statusOrder = { pending: 4, 'under-review': 3, approved: 2, rejected: 1 };
-        return statusOrder[b.status] - statusOrder[a.status];
+        return (statusOrder as any)[b.status] - (statusOrder as any)[a.status];
       default: // date
-        return b.submittedAt.getTime() - a.submittedAt.getTime();
+        return (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0);
     }
   });
 

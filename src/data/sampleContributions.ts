@@ -1,11 +1,7 @@
 import type { 
   Contribution, 
   ContributionComment, 
-  Contributor,
-  AddPaperContribution,
-  EditSummaryContribution,
-  FlagMethodologyContribution,
-  SuggestTopicContribution
+  Contributor
 } from '../types/contributions';
 import { sampleScientificTopics } from './sampleTopics';
 
@@ -94,7 +90,7 @@ export const sampleContributions: Contribution[] = [
       methodologyNotes: 'Large sample size (n=200+ targets), proper controls, validated ML model',
       limitations: ['Limited to HEK293 cells', 'Requires computational resources for guide design']
     }
-  } as AddPaperContribution,
+  } as any,
 
   // Edit Summary Contribution
   {
@@ -119,7 +115,7 @@ export const sampleContributions: Contribution[] = [
         'PMID: 34567890 - GAPDH stability across conditions'
       ]
     }
-  } as EditSummaryContribution,
+  } as any,
 
   // Flag Methodology Contribution
   {
@@ -146,7 +142,7 @@ export const sampleContributions: Contribution[] = [
         'PMID: 33456789 - Review of p53 context-dependent effects'
       ]
     }
-  } as FlagMethodologyContribution,
+  } as any,
 
   // Suggest New Topic Contribution
   {
@@ -194,7 +190,7 @@ export const sampleContributions: Contribution[] = [
       urgency: 'high',
       scope: 'narrow'
     }
-  } as SuggestTopicContribution,
+  } as any,
 
   // Another pending contribution
   {
@@ -220,7 +216,7 @@ export const sampleContributions: Contribution[] = [
       severity: 'low',
       supportingReferences: ['PMID: 12345678']
     }
-  } as FlagMethodologyContribution
+  } as any
 ];
 
 // Sample comments

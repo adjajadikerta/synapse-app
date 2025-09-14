@@ -4,6 +4,10 @@ import { searchDemoPapers, getDemoDefaultPapers } from './services/demoData';
 import { findSimilarPapers } from './services/similarity';
 import TopicsPage from './components/TopicsPage';
 import ContributionsPage from './components/ContributionsPage';
+import ContributionDrawer from './components/contributions/ContributionDrawer';
+import ContributionsReview from './components/contributions/ContributionsReview';
+import { PaperContributeButton, SuggestNewTopicButton } from './components/contributions/ContributionButton';
+import { ContributionsProvider } from './store/contributionsStore';
 import type { ContributionType } from './types/contributions';
 
 type SimilarityScore = {
@@ -386,6 +390,18 @@ function App() {
   const [contributionType, setContributionType] = useState<ContributionType | undefined>(undefined);
   const [targetTopicId, setTargetTopicId] = useState<string | undefined>(undefined);
   
+  // New contribution system state
+  const [contributionDrawerOpen, setContributionDrawerOpen] = useState(false);
+  const [contributionDrawerConfig, setContributionDrawerConfig] = useState<{
+    scope: 'paper' | 'topic';
+    paperId?: string;
+    topicId?: string;
+    paperTitle?: string;
+    topicTitle?: string;
+    type?: string;
+  } | null>(null);
+  const [showContributionsReview, setShowContributionsReview] = useState(false);
+  
   // Convert PubMed article to Paper with ratings
   const convertToPaper = (article: PubMedArticle): Paper => ({
     ...article,
@@ -511,18 +527,38 @@ function App() {
     setActiveTab('contributions');
   };
 
-  const handlePaperContribute = (type: ContributionType, paperId: string, paperTitle: string) => {
-    setContributionType(type);
-    setTargetTopicId(paperId); // Reuse this field for paper ID
-    setActiveTab('contributions');
+  // Legacy handler for backward compatibility
+  // const handlePaperContribute = (type: ContributionType, paperId: string, paperTitle: string) => {
+  //   setContributionType(type);
+  //   setTargetTopicId(paperId); // Reuse this field for paper ID
+  //   setActiveTab('contributions');
+  // };
+
+  // New contribution system handlers
+  const handleOpenContributionDrawer = (config: {
+    scope: 'paper' | 'topic';
+    paperId?: string;
+    topicId?: string;
+    paperTitle?: string;
+    topicTitle?: string;
+    type?: string;
+  }) => {
+    setContributionDrawerConfig(config);
+    setContributionDrawerOpen(true);
+  };
+
+  const handleCloseContributionDrawer = () => {
+    setContributionDrawerOpen(false);
+    setContributionDrawerConfig(null);
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #faf8f3 0%, #f5f2e8 100%)',
-      fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif'
-    }}>
+    <ContributionsProvider>
+      <div style={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #faf8f3 0%, #f5f2e8 100%)',
+        fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif'
+      }}>
       {/* Header Section */}
       <header style={{
         background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
@@ -571,6 +607,33 @@ function App() {
                 Scientific Knowledge Platform
               </p>
             </div>
+            <button
+              onClick={() => setShowContributionsReview(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1.25rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#faf8f3',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🔍 Review Contributions
+            </button>
           </div>
           <p style={{ 
             fontSize: '1.2rem', 
@@ -745,34 +808,11 @@ function App() {
               Browse individual papers, add notes, and discover knowledge gaps
             </p>
           </div>
-          <button
-            onClick={() => handleContribute('suggest-topic', '')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              background: 'linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(74, 144, 226, 0.2)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 144, 226, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(74, 144, 226, 0.2)';
-            }}
-          >
-            💡 Suggest New Topic
-          </button>
+          <SuggestNewTopicButton
+            onOpenDrawer={handleOpenContributionDrawer}
+            variant="primary"
+            size="md"
+          />
         </div>
       )}
       
@@ -1085,93 +1125,17 @@ function App() {
             </div>
 
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '0.75rem'
+              display: 'flex',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
             }}>
-              <button
-                onClick={() => handlePaperContribute('add-methodology-details', paper.pmid, paper.title)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(74, 144, 226, 0.08)',
-                  color: '#4a90e2',
-                  border: '1px solid rgba(74, 144, 226, 0.2)',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(74, 144, 226, 0.12)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(74, 144, 226, 0.08)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                🔬 Add Methods Details
-              </button>
-
-              <button
-                onClick={() => handlePaperContribute('correct-paper-info', paper.pmid, paper.title)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(221, 107, 32, 0.08)',
-                  color: '#dd6b20',
-                  border: '1px solid rgba(221, 107, 32, 0.2)',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(221, 107, 32, 0.12)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(221, 107, 32, 0.08)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                ✏️ Suggest Corrections
-              </button>
-
-              <button
-                onClick={() => handlePaperContribute('suggest-paper-topics', paper.pmid, paper.title)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(56, 161, 105, 0.08)',
-                  color: '#38a169',
-                  border: '1px solid rgba(56, 161, 105, 0.2)',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(56, 161, 105, 0.12)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(56, 161, 105, 0.08)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                🏷️ Suggest Topics
-              </button>
+              <PaperContributeButton
+                paperId={paper.pmid}
+                paperTitle={paper.title}
+                onOpenDrawer={handleOpenContributionDrawer}
+                variant="secondary"
+                size="sm"
+              />
             </div>
           </div>
 
@@ -1188,6 +1152,7 @@ function App() {
         <TopicsPage 
           searchTerm={searchTerm} 
           onContribute={handleContribute}
+          onOpenContributionDrawer={handleOpenContributionDrawer}
         />
       ) : (
         <ContributionsPage 
@@ -1196,7 +1161,25 @@ function App() {
         />
       )}
       </div>
-    </div>
+
+      {/* Contribution Drawer */}
+      {contributionDrawerConfig && (
+        <ContributionDrawer
+          isOpen={contributionDrawerOpen}
+          onClose={handleCloseContributionDrawer}
+          config={contributionDrawerConfig}
+        />
+      )}
+
+      {/* Contributions Review Modal */}
+      {showContributionsReview && (
+        <ContributionsReview
+          isModal={true}
+          onClose={() => setShowContributionsReview(false)}
+        />
+      )}
+      </div>
+    </ContributionsProvider>
   );
 }
 

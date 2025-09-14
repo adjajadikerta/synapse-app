@@ -7,9 +7,17 @@ import type { ContributionType } from '../types/contributions';
 interface TopicsPageProps {
   searchTerm?: string;
   onContribute?: (type: ContributionType, topicId: string) => void;
+  onOpenContributionDrawer?: (config: {
+    scope: 'paper' | 'topic';
+    paperId?: string;
+    topicId?: string;
+    paperTitle?: string;
+    topicTitle?: string;
+    type?: string;
+  }) => void;
 }
 
-export default function TopicsPage({ searchTerm = '', onContribute }: TopicsPageProps) {
+export default function TopicsPage({ searchTerm = '', onContribute, onOpenContributionDrawer }: TopicsPageProps) {
   const [selectedTopic, setSelectedTopic] = useState<ScientificTopic | null>(null);
 
   // Filter topics based on search term
@@ -72,6 +80,7 @@ export default function TopicsPage({ searchTerm = '', onContribute }: TopicsPage
           topic={selectedTopic} 
           onPaperClick={handlePaperClick}
           onContribute={onContribute}
+          onOpenContributionDrawer={onOpenContributionDrawer}
         />
       </div>
     );

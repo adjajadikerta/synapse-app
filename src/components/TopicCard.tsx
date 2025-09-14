@@ -1,10 +1,19 @@
 import { useState } from 'react';
 import type { ScientificTopic, EvidencePaper, OverallAssessment } from '../types/scientificTopic';
+import { TopicContributeButton } from './contributions/ContributionButton';
 
 interface TopicCardProps {
   topic: ScientificTopic;
   onPaperClick?: (paper: EvidencePaper) => void;
   onContribute?: (type: 'add-paper' | 'edit-summary' | 'flag-methodology', topicId: string) => void;
+  onOpenContributionDrawer?: (config: {
+    scope: 'paper' | 'topic';
+    paperId?: string;
+    topicId?: string;
+    paperTitle?: string;
+    topicTitle?: string;
+    type?: string;
+  }) => void;
   className?: string;
 }
 
@@ -883,7 +892,7 @@ function DirectionalFindingsSection({ topic }: { topic: ScientificTopic }) {
   );
 }
 
-export default function TopicCard({ topic, onContribute, className = '' }: TopicCardProps) {
+export default function TopicCard({ topic, onContribute, onOpenContributionDrawer, className = '' }: TopicCardProps) {
   return (
     <div
       className={className}
@@ -1030,7 +1039,7 @@ export default function TopicCard({ topic, onContribute, className = '' }: Topic
       </div>
 
       {/* Contribution Actions */}
-      {onContribute && (
+      {(onContribute || onOpenContributionDrawer) && (
         <div style={{
           paddingTop: DESIGN_TOKENS.spacing.xl,
           borderTop: `1px solid ${DESIGN_TOKENS.colors.border}`,
@@ -1062,93 +1071,107 @@ export default function TopicCard({ topic, onContribute, className = '' }: Topic
           </div>
 
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: DESIGN_TOKENS.spacing.md
+            display: 'flex',
+            gap: DESIGN_TOKENS.spacing.md,
+            flexWrap: 'wrap'
           }}>
-            <button
-              onClick={() => onContribute('add-paper', topic.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: DESIGN_TOKENS.spacing.sm,
-                padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
-                background: 'rgba(74, 144, 226, 0.08)',
-                color: DESIGN_TOKENS.colors.primary,
-                border: `1px solid rgba(74, 144, 226, 0.2)`,
-                borderRadius: '8px',
-                fontSize: DESIGN_TOKENS.fontSize.sm,
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(74, 144, 226, 0.12)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(74, 144, 226, 0.08)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              📄 Suggest Paper
-            </button>
+            {onOpenContributionDrawer && (
+              <TopicContributeButton
+                topicId={topic.id}
+                topicTitle={topic.title}
+                onOpenDrawer={onOpenContributionDrawer}
+                variant="secondary"
+                size="sm"
+              />
+            )}
+            
+            {onContribute && (
+              <>
+                <button
+                  onClick={() => onContribute('add-paper', topic.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: DESIGN_TOKENS.spacing.sm,
+                    padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
+                    background: 'rgba(74, 144, 226, 0.08)',
+                    color: DESIGN_TOKENS.colors.primary,
+                    border: `1px solid rgba(74, 144, 226, 0.2)`,
+                    borderRadius: '8px',
+                    fontSize: DESIGN_TOKENS.fontSize.sm,
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(74, 144, 226, 0.12)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(74, 144, 226, 0.08)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  📄 Suggest Paper
+                </button>
 
-            <button
-              onClick={() => onContribute('edit-summary', topic.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: DESIGN_TOKENS.spacing.sm,
-                padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
-                background: 'rgba(56, 161, 105, 0.08)',
-                color: DESIGN_TOKENS.colors.success,
-                border: `1px solid rgba(56, 161, 105, 0.2)`,
-                borderRadius: '8px',
-                fontSize: DESIGN_TOKENS.fontSize.sm,
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(56, 161, 105, 0.12)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(56, 161, 105, 0.08)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              ✏️ Edit Summary
-            </button>
+                <button
+                  onClick={() => onContribute('edit-summary', topic.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: DESIGN_TOKENS.spacing.sm,
+                    padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
+                    background: 'rgba(56, 161, 105, 0.08)',
+                    color: DESIGN_TOKENS.colors.success,
+                    border: `1px solid rgba(56, 161, 105, 0.2)`,
+                    borderRadius: '8px',
+                    fontSize: DESIGN_TOKENS.fontSize.sm,
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(56, 161, 105, 0.12)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(56, 161, 105, 0.08)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  ✏️ Edit Summary
+                </button>
 
-            <button
-              onClick={() => onContribute('flag-methodology', topic.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: DESIGN_TOKENS.spacing.sm,
-                padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
-                background: 'rgba(221, 107, 32, 0.08)',
-                color: DESIGN_TOKENS.colors.warning,
-                border: `1px solid rgba(221, 107, 32, 0.2)`,
-                borderRadius: '8px',
-                fontSize: DESIGN_TOKENS.fontSize.sm,
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(221, 107, 32, 0.12)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(221, 107, 32, 0.08)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              ⚠️ Flag Issue
-            </button>
+                <button
+                  onClick={() => onContribute('flag-methodology', topic.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: DESIGN_TOKENS.spacing.sm,
+                    padding: `${DESIGN_TOKENS.spacing.md} ${DESIGN_TOKENS.spacing.lg}`,
+                    background: 'rgba(221, 107, 32, 0.08)',
+                    color: DESIGN_TOKENS.colors.warning,
+                    border: `1px solid rgba(221, 107, 32, 0.2)`,
+                    borderRadius: '8px',
+                    fontSize: DESIGN_TOKENS.fontSize.sm,
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(221, 107, 32, 0.12)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(221, 107, 32, 0.08)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  ⚠️ Flag Issue
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

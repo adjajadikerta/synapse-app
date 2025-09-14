@@ -9,10 +9,7 @@ import type {
   AddMethodologyDetailsFormData,
   CorrectPaperInfoFormData,
   SuggestPaperTopicsFormData,
-  ScientificTopic,
-  MethodologyDetails,
-  PaperCorrection,
-  PaperTopicSuggestion
+  ScientificTopic
 } from '../types/contributions';
 
 interface ContributionFormProps {
@@ -387,7 +384,7 @@ export default function ContributionForm({
   });
 
   // Paper-specific contribution states
-  const [methodologyDetails, setMethodologyDetails] = useState({
+  const [methodologyDetails] = useState({
     targetPaperId: initialTopicId || '',
     targetPaperTitle: '',
     missingDetails: [{
@@ -401,7 +398,7 @@ export default function ContributionForm({
     rationale: ''
   });
 
-  const [paperCorrection, setPaperCorrection] = useState({
+  const [paperCorrection] = useState({
     targetPaperId: initialTopicId || '',
     targetPaperTitle: '',
     corrections: [{
@@ -414,7 +411,7 @@ export default function ContributionForm({
     urgency: 'medium' as const
   });
 
-  const [paperTopicSuggestion, setPaperTopicSuggestion] = useState({
+  const [paperTopicSuggestion] = useState({
     targetPaperId: initialTopicId || '',
     targetPaperTitle: '',
     suggestedTopics: [{

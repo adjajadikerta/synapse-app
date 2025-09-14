@@ -84,8 +84,10 @@ export default function ContributionsPage({
 
   const handleFormSubmit = (formData: AnyContributionFormData) => {
     // Create a new contribution from form data
-    const baseContribution: Omit<Contribution, 'type' | 'data'> = {
+    const baseContribution = {
       id: `contribution-${Date.now()}`,
+      scope: 'paper' as const,
+      paperId: 'paper-1',
       contributorId: 'current-user',
       contributor: {
         id: 'current-user',
@@ -103,11 +105,12 @@ export default function ContributionsPage({
       targetTopic: formData.targetTopicId ? 
         sampleScientificTopics.find(t => t.id === formData.targetTopicId) : 
         undefined,
-      status: 'pending',
+      status: 'pending' as const,
       submittedAt: new Date(),
       lastModified: new Date(),
+      createdAt: new Date(),
       tags: [],
-      priority: 'medium'
+      priority: 'medium' as const
     };
 
     let newContribution: Contribution;
